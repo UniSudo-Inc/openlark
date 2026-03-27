@@ -22,7 +22,7 @@ use url::Url;
 
 use crate::{
     client::ws_client::{state_machine::StateMachineEvent, FrameHandler, WebSocketStateMachine},
-    core::{api_resp::BaseResponse, cache::QuickCache, constants::FEISHU_BASE_URL},
+    core::{api_resp::BaseResponse, cache::QuickCache},
     event::dispatcher::EventDispatcherHandler,
 };
 
@@ -236,7 +236,7 @@ async fn get_conn_url(
 
     let req = config
         .http_client
-        .post(format!("{FEISHU_BASE_URL}/{END_POINT_URL}"))
+        .post(format!("{}/{END_POINT_URL}", config.base_url))
         .header("locale", "zh")
         .json(&body)
         .send()
