@@ -1,6 +1,5 @@
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use crate::core::{
     api_req::ApiRequest,
@@ -63,16 +62,16 @@ impl FileService {
         file_data: Vec<u8>,
         option: Option<RequestOption>,
     ) -> SDKResult<CreateFileResponse> {
-        let mut query_params = HashMap::new();
-        query_params.insert("file_type", file_type.to_string());
-        query_params.insert("file_name", file_name.to_string());
-
+        let body = serde_json::json!({
+            "file_type": file_type,
+            "file_name": file_name,
+        });
         let api_req = ApiRequest {
             http_method: Method::POST,
             api_path: crate::core::endpoints::im::IM_V1_FILES.to_string(),
             supported_access_token_types: vec![AccessTokenType::Tenant, AccessTokenType::User],
-            query_params,
-            body: file_data,
+            body: body.to_string().into_bytes(),
+            file: file_data,
             ..Default::default()
         };
 

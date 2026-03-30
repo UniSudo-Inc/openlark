@@ -13,6 +13,7 @@ pub struct RequestOption {
     pub(crate) app_ticket: String,
     pub(crate) file_upload: bool,
     pub(crate) file_download: bool,
+    pub(crate) file_part_name: String,
     pub(crate) header: HashMap<String, String>,
 }
 
@@ -70,6 +71,11 @@ impl RequestOptionBuilder {
 
     pub fn file_download(mut self, file_download: bool) -> Self {
         self.option.file_download = file_download;
+        self
+    }
+
+    pub fn file_part_name(mut self, file_part_name: impl ToString) -> Self {
+        self.option.file_part_name = file_part_name.to_string();
         self
     }
 

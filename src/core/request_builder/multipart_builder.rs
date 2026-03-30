@@ -10,6 +10,7 @@ impl MultipartBuilder {
     pub fn build_multipart(
         req_builder: RequestBuilder,
         body: &[u8],
+        file_part_name: &str,
         file_data: &[u8],
     ) -> Result<RequestBuilder, LarkAPIError> {
         let json_value = serde_json::from_slice::<Value>(body)?;
@@ -21,7 +22,7 @@ impl MultipartBuilder {
         let mut form = multipart::Form::new();
 
         // 处理文件部分
-        form = Self::add_file_part(form, form_obj, file_data)?;
+        form = Self::add_file_part(form, file_part_name, form_obj, file_data);
 
         // 处理其他表单字段
         form = Self::add_form_fields(form, form_obj)?;
@@ -35,19 +36,17 @@ impl MultipartBuilder {
     /// 添加文件部分到表单
     fn add_file_part(
         mut form: multipart::Form,
+        name: &str,
         form_obj: &serde_json::Map<String, Value>,
         file_data: &[u8],
-    ) -> Result<multipart::Form, LarkAPIError> {
-        let file_name = form_obj
-            .get("file_name")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| LarkAPIError::BadRequest("Missing file_name in form data".to_string()))?
-            .to_string();
+    ) -> multipart::Form {
+        let mut file_part = multipart::Part::bytes(file_data.to_vec());
+        if let Some(file_name) = form_obj.get("file_name").and_then(|v| v.as_str()) {
+            file_part = file_part.file_name(file_name.to_string());
+        }
 
-        let file_part = multipart::Part::bytes(file_data.to_vec()).file_name(file_name);
-
-        form = form.part("file", file_part);
-        Ok(form)
+        form = form.part(name.to_string(), file_part);
+        form
     }
 
     /// 添加普通表单字段
@@ -103,7 +102,7 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
     }
@@ -118,7 +117,7 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_err());
         if let Err(LarkAPIError::BadRequest(msg)) = result {
@@ -134,7 +133,8 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, invalid_body, file_data);
+        let result =
+            MultipartBuilder::build_multipart(req_builder, invalid_body, "file", file_data);
 
         assert!(result.is_err());
         match result {
@@ -150,7 +150,7 @@ mod tests {
         let file_data = b"Hello, World!";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_err());
         if let Err(LarkAPIError::BadRequest(msg)) = result {
@@ -174,7 +174,7 @@ mod tests {
         let file_data = b"PDF content here";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
     }
@@ -192,7 +192,7 @@ mod tests {
         let file_data = b"Test content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
     }
@@ -213,7 +213,7 @@ mod tests {
         let file_data = b"JSON content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
     }
@@ -229,7 +229,7 @@ mod tests {
         let file_data = b"";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
     }
@@ -247,7 +247,7 @@ mod tests {
         let file_data = vec![0u8; 1024 * 1024];
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, &file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", &file_data);
 
         assert!(result.is_ok());
     }
@@ -261,42 +261,7 @@ mod tests {
         let form = reqwest::multipart::Form::new();
         let file_data = b"file content";
 
-        let result = MultipartBuilder::add_file_part(form, &form_data, file_data);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_add_file_part_missing_file_name() {
-        let form_data = serde_json::Map::new();
-        let form = reqwest::multipart::Form::new();
-        let file_data = b"file content";
-
-        let result = MultipartBuilder::add_file_part(form, &form_data, file_data);
-        assert!(result.is_err());
-
-        if let Err(LarkAPIError::BadRequest(msg)) = result {
-            assert!(msg.contains("Missing file_name"));
-        } else {
-            panic!("Expected BadRequest error");
-        }
-    }
-
-    #[test]
-    fn test_add_file_part_non_string_file_name() {
-        let mut form_data = serde_json::Map::new();
-        form_data.insert("file_name".to_string(), json!(123)); // Number instead of string
-
-        let form = reqwest::multipart::Form::new();
-        let file_data = b"file content";
-
-        let result = MultipartBuilder::add_file_part(form, &form_data, file_data);
-        assert!(result.is_err());
-
-        if let Err(LarkAPIError::BadRequest(msg)) = result {
-            assert!(msg.contains("Missing file_name"));
-        } else {
-            panic!("Expected BadRequest error");
-        }
+        let _result = MultipartBuilder::add_file_part(form, "file", &form_data, file_data);
     }
 
     #[test]
@@ -380,7 +345,7 @@ mod tests {
         let file_data = b"Complex JSON content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
     }
@@ -396,7 +361,7 @@ mod tests {
         let file_data = b"File with special name";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
     }
@@ -421,7 +386,7 @@ mod tests {
         let file_data = b"PDF integration test content";
 
         let req_builder = create_test_request_builder();
-        let result = MultipartBuilder::build_multipart(req_builder, &body, file_data);
+        let result = MultipartBuilder::build_multipart(req_builder, &body, "file", file_data);
 
         assert!(result.is_ok());
 

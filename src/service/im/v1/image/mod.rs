@@ -60,17 +60,22 @@ impl ImageService {
         image_data: Vec<u8>,
         option: Option<RequestOption>,
     ) -> SDKResult<CreateImageResponse> {
+        let body = serde_json::json!({
+            "image_type": image_type,
+        });
         let api_req = ApiRequest {
             http_method: Method::POST,
             api_path: crate::core::endpoints::im::IM_V1_IMAGES.to_string(),
             supported_access_token_types: vec![AccessTokenType::Tenant, AccessTokenType::User],
-            query_params: HashMap::from([("image_type", image_type.to_string())]),
-            body: image_data,
+            body: body.to_string().into_bytes(),
+            file: image_data,
             ..Default::default()
         };
 
+        let mut option = option.unwrap_or_default();
+        option.file_part_name = "image".to_string();
         let api_resp: BaseResponse<CreateImageResponse> =
-            Transport::request(api_req, &self.config, option).await?;
+            Transport::request(api_req, &self.config, Some(option)).await?;
         api_resp.into_result()
     }
 

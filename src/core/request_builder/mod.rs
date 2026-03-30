@@ -39,7 +39,17 @@ impl UnifiedRequestBuilder {
 
             // 4. 处理请求体
             if !req.file.is_empty() {
-                req_builder = MultipartBuilder::build_multipart(req_builder, &req.body, &req.file)?;
+                let file_part_name = if option.file_part_name.is_empty() {
+                    "file"
+                } else {
+                    &option.file_part_name
+                };
+                req_builder = MultipartBuilder::build_multipart(
+                    req_builder,
+                    &req.body,
+                    file_part_name,
+                    &req.file,
+                )?;
             } else if !req.body.is_empty() {
                 req_builder = req_builder.body(req.body.clone());
                 req_builder = req_builder.header(
