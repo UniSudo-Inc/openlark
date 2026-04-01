@@ -40,11 +40,20 @@ impl ApiResponseTrait for CreateImageResponse {
 pub struct GetImageResponse {
     /// 图片数据
     pub data: Vec<u8>,
+    /// 图片文件名
+    pub file_name: String,
 }
 
 impl ApiResponseTrait for GetImageResponse {
     fn data_format() -> ResponseFormat {
-        ResponseFormat::Data
+        ResponseFormat::Binary
+    }
+
+    fn from_binary(file_name: String, body: Vec<u8>) -> Option<Self> {
+        Some(Self {
+            data: body,
+            file_name,
+        })
     }
 }
 
