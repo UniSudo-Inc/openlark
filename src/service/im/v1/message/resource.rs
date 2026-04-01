@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use reqwest::Method;
 use serde::Deserialize;
 
@@ -44,15 +46,18 @@ impl MessageService {
     pub async fn get_resource(
         &self,
         message_id: &str,
+        file_type: &str,
         file_key: &str,
         option: Option<RequestOption>,
     ) -> SDKResult<GetMessageResourceResp> {
+        let query_params = HashMap::from([("type", file_type.to_string())]);
         let api_req = crate::core::api_req::ApiRequest {
             http_method: Method::GET,
             api_path: EndpointBuilder::replace_params_from_array(
                 crate::core::endpoints::im::IM_V1_MESSAGE_GET_RESOURCE,
                 &[("message_id", message_id), ("file_key", file_key)],
             ),
+            query_params,
             supported_access_token_types: vec![AccessTokenType::Tenant, AccessTokenType::User],
             ..Default::default()
         };
