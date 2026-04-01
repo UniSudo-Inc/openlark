@@ -6,7 +6,8 @@
 pub mod builders;
 pub mod content_types;
 pub mod list;
-pub mod send;
+pub mod message;
+pub mod resource;
 pub mod types;
 
 // Re-export main types and services for easier imports

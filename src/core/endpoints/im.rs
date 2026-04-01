@@ -69,6 +69,10 @@ pub const IM_V1_MESSAGE_PATCH: &str = "/open-apis/im/v1/messages/{message_id}";
 /// 消息删除 (兼容性别名)
 pub const IM_V1_MESSAGE_DELETE: &str = "/open-apis/im/v1/messages/{message_id}";
 
+/// 获取消息资源
+pub const IM_V1_MESSAGE_GET_RESOURCE: &str =
+    "/open-apis/im/v1/messages/{message_id}/resources/{file_key}";
+
 // ==================== 会话管理端点 ====================
 
 /// 创建群聊
