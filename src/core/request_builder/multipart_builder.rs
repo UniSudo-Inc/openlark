@@ -55,11 +55,6 @@ impl MultipartBuilder {
         form_obj: &serde_json::Map<String, Value>,
     ) -> Result<multipart::Form, LarkAPIError> {
         for (key, value) in form_obj.iter() {
-            // 跳过 file_name 字段和 null 值
-            if key == "file_name" || value == &Value::Null {
-                continue;
-            }
-
             form = match value {
                 Value::String(s) => form.text(key.to_string(), s.to_string()),
                 Value::Number(n) => form.text(key.to_string(), n.to_string()),
