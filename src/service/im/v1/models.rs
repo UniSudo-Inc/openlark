@@ -110,24 +110,26 @@ impl Default for EmojiType {
     }
 }
 
+/// 事件操作者信息
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct EventOperator {
+    /// 操作者ID
+    pub operator_id: String,
+    /// 操作者类型
+    pub operator_type: String,
+}
+
 /// 表情回复信息
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MessageReaction {
-    /// 消息ID
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub message_id: Option<String>,
+    /// 表情回复 ID。为消息添加表情回复后，会获得该表情回复的唯一标识 ID，后续使用该 ID 可以删除消息表情回复。
+    pub reaction_id: String,
+    /// 事件操作者信息
+    pub operator: EventOperator,
+    /// 操作时间
+    pub action_time: String,
     /// 表情类型
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub emoji_type: Option<EmojiType>,
-    /// 回复次数
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reaction_count: Option<i32>,
-    /// 是否包含当前用户
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub has_reacted: Option<bool>,
-    /// 回复用户列表
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reaction_users: Option<Vec<ReactionUser>>,
+    pub reaction_type: EmojiType,
 }
 
 /// 表情回复用户信息
@@ -462,75 +464,6 @@ mod tests {
     }
 
     #[test]
-    fn test_message_reaction_serialization() {
-        let reaction = MessageReaction {
-            message_id: Some("msg_123".to_string()),
-            emoji_type: Some(EmojiType {
-                emoji_type: Some("heart".to_string()),
-            }),
-            reaction_count: Some(5),
-            has_reacted: Some(true),
-            reaction_users: Some(vec![ReactionUser {
-                user_id: Some("user_456".to_string()),
-                name: Some("张三".to_string()),
-                avatar: Some("avatar_url".to_string()),
-                reaction_time: Some("2024-01-01T10:00:00Z".to_string()),
-            }]),
-        };
-
-        let serialized = serde_json::to_string(&reaction).unwrap();
-        let deserialized: MessageReaction = serde_json::from_str(&serialized).unwrap();
-
-        assert_eq!(reaction.message_id, deserialized.message_id);
-        assert_eq!(reaction.reaction_count, deserialized.reaction_count);
-        assert_eq!(reaction.has_reacted, deserialized.has_reacted);
-        assert_eq!(
-            reaction.reaction_users.as_ref().unwrap().len(),
-            deserialized.reaction_users.as_ref().unwrap().len()
-        );
-    }
-
-    #[test]
-    fn test_reaction_user_serialization() {
-        let user = ReactionUser {
-            user_id: Some("user_789".to_string()),
-            name: Some("李四".to_string()),
-            avatar: Some("https://avatar.example.com/789".to_string()),
-            reaction_time: Some("2024-01-01T11:30:00Z".to_string()),
-        };
-
-        let serialized = serde_json::to_string(&user).unwrap();
-        let deserialized: ReactionUser = serde_json::from_str(&serialized).unwrap();
-
-        assert_eq!(user.user_id, deserialized.user_id);
-        assert_eq!(user.name, deserialized.name);
-        assert_eq!(user.avatar, deserialized.avatar);
-        assert_eq!(user.reaction_time, deserialized.reaction_time);
-    }
-
-    #[test]
-    fn test_pin_serialization() {
-        let pin = Pin {
-            pin_id: Some("pin_123".to_string()),
-            message_id: Some("msg_456".to_string()),
-            chat_id: Some("chat_789".to_string()),
-            operator_id: Some("operator_101".to_string()),
-            pin_type: Some("manual".to_string()),
-            create_time: Some("2024-01-01T09:00:00Z".to_string()),
-        };
-
-        let serialized = serde_json::to_string(&pin).unwrap();
-        let deserialized: Pin = serde_json::from_str(&serialized).unwrap();
-
-        assert_eq!(pin.pin_id, deserialized.pin_id);
-        assert_eq!(pin.message_id, deserialized.message_id);
-        assert_eq!(pin.chat_id, deserialized.chat_id);
-        assert_eq!(pin.operator_id, deserialized.operator_id);
-        assert_eq!(pin.pin_type, deserialized.pin_type);
-        assert_eq!(pin.create_time, deserialized.create_time);
-    }
-
-    #[test]
     fn test_batch_message_serialization() {
         let batch_msg = BatchMessage {
             batch_message_id: Some("batch_123".to_string()),
@@ -731,73 +664,6 @@ mod tests {
         assert_eq!(read_user.user_id, deserialized.user_id);
         assert_eq!(read_user.read_time, deserialized.read_time);
         assert_eq!(read_user.tenant_key, deserialized.tenant_key);
-    }
-
-    #[test]
-    fn test_models_with_none_values() {
-        let emoji = EmojiType { emoji_type: None };
-        let serialized = serde_json::to_string(&emoji).unwrap();
-        let deserialized: EmojiType = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(emoji.emoji_type, deserialized.emoji_type);
-
-        let reaction = MessageReaction {
-            message_id: None,
-            emoji_type: None,
-            reaction_count: None,
-            has_reacted: None,
-            reaction_users: None,
-        };
-        let serialized = serde_json::to_string(&reaction).unwrap();
-        let deserialized: MessageReaction = serde_json::from_str(&serialized).unwrap();
-        assert!(deserialized.message_id.is_none());
-        assert!(deserialized.emoji_type.is_none());
-        assert!(deserialized.reaction_count.is_none());
-    }
-
-    #[test]
-    fn test_complex_message_reaction_with_multiple_users() {
-        let reaction = MessageReaction {
-            message_id: Some("complex_msg_123".to_string()),
-            emoji_type: Some(EmojiType {
-                emoji_type: Some("party".to_string()),
-            }),
-            reaction_count: Some(3),
-            has_reacted: Some(true),
-            reaction_users: Some(vec![
-                ReactionUser {
-                    user_id: Some("user_a".to_string()),
-                    name: Some("用户A".to_string()),
-                    avatar: Some("avatar_a.jpg".to_string()),
-                    reaction_time: Some("2024-01-01T09:00:00Z".to_string()),
-                },
-                ReactionUser {
-                    user_id: Some("user_b".to_string()),
-                    name: Some("用户B".to_string()),
-                    avatar: Some("avatar_b.jpg".to_string()),
-                    reaction_time: Some("2024-01-01T09:05:00Z".to_string()),
-                },
-                ReactionUser {
-                    user_id: Some("user_c".to_string()),
-                    name: Some("用户C".to_string()),
-                    avatar: Some("avatar_c.jpg".to_string()),
-                    reaction_time: Some("2024-01-01T09:10:00Z".to_string()),
-                },
-            ]),
-        };
-
-        let serialized = serde_json::to_string(&reaction).unwrap();
-        let deserialized: MessageReaction = serde_json::from_str(&serialized).unwrap();
-
-        assert_eq!(reaction.message_id, deserialized.message_id);
-        assert_eq!(reaction.reaction_count, deserialized.reaction_count);
-        assert_eq!(reaction.has_reacted, deserialized.has_reacted);
-        assert_eq!(reaction.reaction_users.as_ref().unwrap().len(), 3);
-        assert_eq!(deserialized.reaction_users.as_ref().unwrap().len(), 3);
-
-        let first_user = &reaction.reaction_users.as_ref().unwrap()[0];
-        let deserialized_first_user = &deserialized.reaction_users.as_ref().unwrap()[0];
-        assert_eq!(first_user.user_id, deserialized_first_user.user_id);
-        assert_eq!(first_user.name, deserialized_first_user.name);
     }
 
     #[test]

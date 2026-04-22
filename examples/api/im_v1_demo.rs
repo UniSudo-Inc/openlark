@@ -66,7 +66,7 @@ async fn demo_message_reactions(client: &LarkClient) -> Result<(), Box<dyn std::
         .im
         .v1
         .message_reaction
-        .create(message_id, emoji_type, Some(UserIdType::OpenId), None)
+        .create(message_id, emoji_type, None)
         .await
     {
         Ok(_) => {
@@ -82,11 +82,18 @@ async fn demo_message_reactions(client: &LarkClient) -> Result<(), Box<dyn std::
         .im
         .v1
         .message_reaction
-        .list(message_id, Some(UserIdType::OpenId), Some(20), None, None)
+        .list(
+            message_id,
+            None,
+            Some(UserIdType::OpenId),
+            Some(20),
+            None,
+            None,
+        )
         .await
     {
         Ok(response) => {
-            println!("  📋 获取到 {} 个表情回复", response.reactions.len());
+            println!("  📋 获取到 {} 个表情回复", response.items.len());
         }
         Err(e) => {
             println!("  ❌ 获取表情回复失败: {e:?}");
