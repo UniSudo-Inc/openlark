@@ -388,7 +388,7 @@ impl<'a> Context<'a> {
                 _ = self.ping_frame_interval.tick() => {
                         let service_id: i32 = self.service_id;
                         let frame = FrameHandler::build_ping_frame(service_id);
-                        let msg = Message::Binary(frame.encode_to_vec());
+                        let msg = Message::Binary(frame.encode_to_vec().into());
                         trace!(
                             "Sending ping message:  {:?} {} {}",
                             msg,
@@ -441,7 +441,7 @@ impl<'a> Context<'a> {
                 return Err(WsClientError::ConnectionClosed {
                     reason: Some(WsCloseReason {
                         code: close_frame.code,
-                        message: close_frame.reason.into_owned(),
+                        message: close_frame.reason.to_string(),
                     }),
                 });
             }
@@ -498,7 +498,7 @@ impl<'a> Context<'a> {
 
     async fn handle_send_frame(&mut self, frame: Frame) -> WsClientResult<()> {
         trace!("send frame: {frame:?}");
-        let msg = Message::Binary(frame.encode_to_vec());
+        let msg = Message::Binary(frame.encode_to_vec().into());
 
         self.sink.send(msg).await?;
         Ok(())
